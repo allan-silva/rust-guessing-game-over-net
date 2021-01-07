@@ -80,8 +80,20 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn accept_challenge(&mut self, player: &'a Box<Player>) {
-        self.player_two = Some(player);
+    fn get_free_position(&mut self) -> Result<&mut Option<&'a Box<Player>>, String> {
+        if self.player_one.is_none() {
+            Ok(&mut self.player_one)
+        } else if self.player_two.is_none() {
+            Ok(&mut self.player_two)
+        } else {
+            Err(String::from("This game is full"))
+        }
+    }
+
+    fn accept_challenge(&mut self, joining_player: &'a Box<Player>) -> Result<(), String> {
+        let free_position = self.get_free_position()?;
+        *free_position = Some(joining_player);
+        Ok(())
     }
 }
 
@@ -109,7 +121,17 @@ mod tests {
         assert_eq!(Err(String::from("No player 2 present")), game.set_ready());
     }
 
-    //TODO test missing player one
+    #[test]
+    fn test_set_ready_error_player_one() {
+        let player_one = box Player::new(String::from("Chico"));
+        let player_two = box Player::new(String::from("Paloma"));
+
+        let mut game = Game::new(&player_one);
+        assert_eq!(Ok(()), game.accept_challenge(&player_two));
+        game.player_one = None;
+
+        assert_eq!(Err(String::from("No player 1 present")), game.set_ready());
+    }
 
     #[test]
     fn test_set_ready() {
@@ -117,21 +139,48 @@ mod tests {
         let player_two = box Player::new(String::from("Paloma"));
 
         let mut game = Game::new(&player_one);
-        game.accept_challenge(&player_two);
+        assert_eq!(Ok(()), game.accept_challenge(&player_two));
 
         assert_eq!(Ok(()), game.set_ready());
     }
 
-
     #[test]
-    fn test_accept_challenge() {
+    fn test_accept_challenge_player_two() {
         let player_one = box Player::new(String::from("Chico"));
         let player_two = box Player::new(String::from("Paloma"));
 
         let mut game = Game::new(&player_one);
-        game.accept_challenge(&player_two);
-
+        assert_eq!(Ok(()), game.accept_challenge(&player_two));
+        assert_eq!(player_one.id, game.player_one.unwrap().id);
         assert_eq!(player_two.id, game.player_two.unwrap().id);
+    }
+
+    #[test]
+    fn test_accept_challenge_player_one() {
+        let player_one = box Player::new(String::from("Chico"));
+        let player_two = box Player::new(String::from("Paloma"));
+        let player_three = box Player::new(String::from("Allan"));
+
+        let mut game = Game::new(&player_one);
+
+        assert_eq!(Ok(()), game.accept_challenge(&player_two));
+        assert_eq!(player_two.id, game.player_two.unwrap().id);
+
+        game.player_one = None;
+
+        assert_eq!(Ok(()), game.accept_challenge(&player_three));
+        assert_eq!(player_three.id, game.player_one.unwrap().id);
+    }
+
+    #[test]
+    fn test_accept_challenge_error() {
+        let player_one = box Player::new(String::from("Chico"));
+        let player_two = box Player::new(String::from("Paloma"));
+        let player_three = box Player::new(String::from("Allan"));
+
+        let mut game = Game::new(&player_one);
+        game.accept_challenge(&player_two).unwrap();
+        assert_eq!(Err(String::from("This game is full")), game.accept_challenge(&player_three));
     }
 
     #[test]
