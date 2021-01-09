@@ -2,8 +2,8 @@ use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]
 pub struct Player {
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
     secret_number: Option<u16>, // This will live here until this turns a multi game binary
     life: u8,                   //This will live here until this turns a multi game binary
 }
