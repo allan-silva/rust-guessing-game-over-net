@@ -5,8 +5,6 @@ mod server;
 
 use server::Server;
 
-
 fn main() {
-    let server = Server::new();
-    server.run();
+    Server::new().run();
 }

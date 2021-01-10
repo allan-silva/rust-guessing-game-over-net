@@ -1,62 +1,77 @@
 use std::collections::HashMap;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use std::sync::Arc;
-use std::ops::{Deref, DerefMut};
+use std::io::prelude::*;
 
 use crate::game::{Game, Player};
 
-pub struct GameData {
-    players: HashMap<String, Player>,
-    games: HashMap<String, Game<'static>>,
+#[derive(Debug)]
+pub struct GameManager {
+    players: HashMap<String, Arc<RwLock<Player>>>,
+    games: HashMap<String, RwLock<Game<'static>>>,
+    call_nr: Mutex<u8>,
 }
 
-// impl Deref for GameData<'a> {
-//     type Target = HashMap<String, Player>;
-
-//     fn deref(&self) -> &Self::Target {
-//         &self.players
-//     }
-// }
-
-// impl DerefMut for GameData {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.players
-//     }
-// }
-
-impl GameData {
-    pub fn new() -> GameData {
-        GameData {
+impl GameManager {
+    pub fn new() -> GameManager {
+        GameManager {
             players: HashMap::new(),
             games: HashMap::new(),
+            call_nr: Mutex::new(0),
         }
+    }
+
+    fn handle_call(&self, stream: &mut TcpStream) -> String {
+        let contents = String::from("Hi!");
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            contents.len(),
+            contents
+        );
+
+        stream.write(response.as_bytes()).unwrap();
+        stream.flush().unwrap();
+
+        *self.call_nr.lock().unwrap() += 1;
+
+        format!("Call handled({})", self.call_nr.lock().unwrap())
+    }
+
+    fn create_player(&mut self, name: &str) {
+        let player = Player::new(String::from(name));
+        self.players.insert(String::from(name), Arc::new(RwLock::new(player)));
     }
 }
 
 pub struct Server {
-    game_data: GameData,
+    game_data: Arc<RwLock<GameManager>>,
 }
 
 impl Server {
     pub fn new() -> Server {
         Server {
-            game_data: GameData::new()
+            game_data: Arc::new(RwLock::new(GameManager::new())),
         }
     }
 
     pub fn run(self) {
-        println!("Starting server");
+        println!("Server is running");
 
-        let mut game_data = self.game_data;
+        let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-        thread::spawn(move || {
-            let player_one = Player::new("Chico".to_string());
-            let player_two = Player::new("Paloma".to_string());
+        for stream in listener.incoming() {
+            let game_manager = self.game_data.clone();
 
-            game_data.players.insert(player_one.id.clone(), player_one);
-            game_data.players.insert(player_two.id.clone(), player_two);
-
-            println!("Running");
-        }).join();
+            thread::spawn(move || {
+                match game_manager.write() {
+                    Ok(ref manager) => {
+                        let status = manager.handle_call(&mut stream.unwrap());
+                        println!("{}", status);
+                    },
+                    Err(_) => println!("not GET The lock"),
+                };
+            });
+        }
     }
 }
