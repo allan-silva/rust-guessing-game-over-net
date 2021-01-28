@@ -1,77 +1,105 @@
+use chrono::{DateTime, Local};
 use std::collections::HashMap;
-use std::net::{TcpListener, TcpStream};
+use std::io::prelude::*;
+use std::io::{BufRead, BufReader};
+use std::net::{Shutdown, TcpListener, TcpStream};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use std::io::prelude::*;
+use uuid::Uuid;
 
-use crate::game::{Game, Player};
-
-#[derive(Debug)]
-pub struct GameManager {
-    players: HashMap<String, Arc<RwLock<Player>>>,
-    games: HashMap<String, RwLock<Game<'static>>>,
-    call_nr: Mutex<u8>,
+struct Player {
+    id: String,
+    name: String,
+    registered_at: DateTime<Local>,
 }
 
-impl GameManager {
-    pub fn new() -> GameManager {
-        GameManager {
-            players: HashMap::new(),
-            games: HashMap::new(),
-            call_nr: Mutex::new(0),
-        }
-    }
+struct ServerStats {
+    total_players: u32,
+    total_game_sessions: u32,
+}
 
-    fn handle_call(&self, stream: &mut TcpStream) -> String {
-        let contents = String::from("Hi!");
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            contents.len(),
-            contents
-        );
+struct GameSession {}
 
-        stream.write(response.as_bytes()).unwrap();
-        stream.flush().unwrap();
+struct GameMessage {}
 
-        *self.call_nr.lock().unwrap() += 1;
-
-        format!("Call handled({})", self.call_nr.lock().unwrap())
-    }
-
-    fn create_player(&mut self, name: &str) {
-        let player = Player::new(String::from(name));
-        self.players.insert(String::from(name), Arc::new(RwLock::new(player)));
-    }
+enum ServerCommand {
+    AcceptedConnection(TcpStream, Box<Sender<ServerCommand>>),
 }
 
 pub struct Server {
-    game_data: Arc<RwLock<GameManager>>,
+    players: HashMap<String, Player>,
+    sessions: HashMap<String, GameSession>,
 }
 
 impl Server {
     pub fn new() -> Server {
         Server {
-            game_data: Arc::new(RwLock::new(GameManager::new())),
+            sessions: HashMap::new(),
+            players: HashMap::new(),
         }
     }
 
-    pub fn run(self) {
-        println!("Server is running");
+    pub fn run(&mut self) {
+        let (main_tx, main_rx) = channel::<ServerCommand>();
+        self.start_server(main_tx);
+        self.listen_game_commands(main_rx);
+    }
 
-        let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    fn start_server(&self, main_tx: Sender<ServerCommand>) {
+        thread::spawn(move || {
+            let listener = TcpListener::bind("127.0.0.1:4242").unwrap();
+            for stream in listener.incoming() {
+                let stream = stream.unwrap().try_clone().unwrap();
+                main_tx
+                    .send(ServerCommand::AcceptedConnection(
+                        stream,
+                        box main_tx.clone(),
+                    ))
+                    .unwrap();
+            }
+        });
+    }
 
-        for stream in listener.incoming() {
-            let game_manager = self.game_data.clone();
+    fn listen_game_commands(&mut self, receiver: Receiver<ServerCommand>) {
+        println!("Server started, waiting for connections");
 
-            thread::spawn(move || {
-                match game_manager.write() {
-                    Ok(ref manager) => {
-                        let status = manager.handle_call(&mut stream.unwrap());
-                        println!("{}", status);
-                    },
-                    Err(_) => println!("not GET The lock"),
+        for server_command in receiver {
+            match server_command {
+                ServerCommand::AcceptedConnection(stream, main_tx) => {
+                    match self.register_user(stream, *main_tx) {
+                        Ok(player_id) => println!("Player registred {}", player_id),
+                        Err(err_message) => println!("User registration error: {}", err_message),
+                    }
+                }
+            }
+        }
+    }
+
+    fn register_user(
+        &mut self,
+        stream: TcpStream,
+        main_tx: Sender<ServerCommand>,
+    ) -> Result<String, String> {
+        let mut reader = BufReader::new(&stream);
+        let mut buffer = Vec::new();
+
+        match reader.read_until(4, &mut buffer) {
+            Ok(_) => {
+                let player_id = Uuid::new_v4().to_string();
+                let player = Player {
+                    id: player_id.clone(),
+                    name: String::from(""),
+                    registered_at: Local::now(),
                 };
-            });
+                println!("{}", String::from_utf8(buffer).unwrap());
+                self.players.insert(player_id.clone(), player);
+                Ok(player_id)
+            }
+            Err(e) => {
+                stream.shutdown(Shutdown::Both).unwrap();
+                Err(e.raw_os_error().unwrap().to_string())
+            }
         }
     }
 }
