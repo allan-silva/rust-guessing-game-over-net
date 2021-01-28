@@ -2,7 +2,9 @@
 Popular Rust Guessing Game, over tcp connection
 
 
-# Protocol
+# Protocol 
+
+Inspired by AMQP 0.9.1
 
 ## Protocol Header
 Literal: "GG010"
