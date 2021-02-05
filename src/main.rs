@@ -2,6 +2,8 @@
 
 mod game;
 mod server;
+mod protocol;
+mod messages;
 
 use server::Server;
 

@@ -20,11 +20,11 @@ Literal: "GG010"
 
 ## Payload
 
-| size |content  |
+| size |content as bytes |
 |--|--|
 |  u8| [u8] |
 
-## Class 1 - Server Commands
+## Class 1 - Connection
 C - received from client
 S - send to client
 
@@ -37,20 +37,20 @@ S - send to client
 ### Registration method payload
 |size| constraints |
 |--|--|
-|u32|[u8]|
-| constraint size in bytes | Json[1] as bytes, containing registration constraints  |
+|u32|String|
+| constraint size in bytes | Json[1] containing registration constraints  |
 
 ### Registration.Ok method payload
 |size| user name |
 |--|--|
-|u8|[u8]|
-| user name size | User name as bytes |
+|u8|String|
+| user name size | User name |
 
 ### User method payload
 |size| user |
 |--|--|
-|u32|[u8]|
-| user size in bytes | Json User as bytes |
+|u32|String|
+| user size in bytes | Json User |
 
 **[1] this protocol will not use field-table-like implementation to describe complex data structure, the goal is to focus in others aspects of the program.**
 
