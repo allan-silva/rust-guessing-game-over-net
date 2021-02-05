@@ -1,7 +1,7 @@
 use std::sync::mpsc::Sender;
 use std::net::TcpStream;
 
-pub enum ServerCommand {
+pub enum Command {
     Message(String),
-    AcceptedConnection(TcpStream, Box<Sender<ServerCommand>>),
+    IncomingConnection(TcpStream),
 }

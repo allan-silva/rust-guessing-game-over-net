@@ -1,14 +1,9 @@
 #![feature(box_syntax)]
 
-mod game;
-mod server;
+mod connection;
 mod protocol;
 mod messages;
-
-use server::Server;
-
-
+mod driver;
 
 fn main() {
-    Server::new().run();
 }
