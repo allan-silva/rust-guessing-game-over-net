@@ -14,9 +14,14 @@ Literal: "GG010"
 
 ## Frame format
 
-|class| method |*payload* |  frame-End|
-|--|--|--|--|
-| u8 | u8 | - | u8 |
+| *FrameHeader* |*payload* |  frame-End|
+|--|--|--|
+| - | - | u8 |
+
+## FrameHeader
+|class| method|
+|--|--|
+| u8 | u8 |
 
 ## Payload
 
