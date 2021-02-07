@@ -61,7 +61,6 @@ pub fn parse_registration_method(input: &[u8]) -> Result<(&[u8], Registration), 
         )
     });
     let (remain_bytes, constraint_size) = constraints_size_parse.unwrap();
-    println!("SIZE: {}", constraint_size);
     let (remain_bytes, connection_constraints) = parse_registration_constraints(remain_bytes, constraint_size as usize).unwrap();
     Ok((remain_bytes, Registration::new(constraint_size, connection_constraints)))
 }
