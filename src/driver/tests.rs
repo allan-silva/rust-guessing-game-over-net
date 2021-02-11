@@ -1,4 +1,4 @@
-use crate::driver::parser::{parse_frame_header, parse_registration_method};
+use crate::driver::parser::{parse_frame_header, parse_registration_method, parse_registration_ok_method};
 use crate::protocol::{Class, ConnectionConstraints, Method, Registration};
 use byteorder::{ByteOrder, NetworkEndian};
 use serde_json;
@@ -20,17 +20,31 @@ fn test_parse_registration() {
         .as_bytes()
         .to_owned();
 
-    let mut frame_bytes: Vec<u8> = Vec::new();
+    let mut payload: Vec<u8> = Vec::new();
 
     let mut constraits_len_bytes: [u8; 4] = [0; 4];
     NetworkEndian::write_u32(&mut constraits_len_bytes, constraints_bytes.len() as u32);
 
-    frame_bytes.extend(&constraits_len_bytes);
-    frame_bytes.extend(&constraints_bytes);
+    payload.extend(&constraits_len_bytes);
+    payload.extend(&constraints_bytes);
 
-    let (remain_bytes, registration) = parse_registration_method(&frame_bytes).unwrap();
+    let (remain_bytes, registration) = parse_registration_method(&payload).unwrap();
     assert_eq!(0, remain_bytes.len());
-    println!("{},{}", constraints_bytes.len(), registration.size);
     assert_eq!(constraints_bytes.len(), registration.size as usize);
     assert_eq!(constraints.max_name_size, registration.constraints.max_name_size);
+}
+
+#[test]
+fn test_parse_registration_ok() {
+    let user_name = String::from("Allançõí");
+    let user_name_bytes = user_name.as_bytes().to_owned();
+    let user_name_size = user_name_bytes.len() as u8;
+    let mut payload = Vec::new();
+    payload.push(user_name_size);
+    payload.extend(&user_name_bytes);
+
+    let (remain_bytes, registration_ok) = parse_registration_ok_method(&payload).unwrap();
+    assert_eq!(0, remain_bytes.len());
+    assert_eq!(user_name_bytes.len(), registration_ok.size as usize);
+    assert_eq!(user_name, registration_ok.user_name);
 }

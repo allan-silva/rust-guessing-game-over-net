@@ -44,6 +44,11 @@ pub trait FramePayload {
     fn get(self) -> Self::Payload;
 }
 
+pub struct Frame<T> {
+    pub header: FrameHeader,
+    pub payload: Box<dyn FramePayload<Payload = T>>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConnectionConstraints {
     pub max_name_size: u8,
@@ -69,13 +74,29 @@ impl Registration {
     }
 }
 
-pub struct Frame<T> {
-    pub header: FrameHeader,
-    pub payload: Box<dyn FramePayload<Payload = T>>,
-}
-
 impl FramePayload for Registration {
     type Payload = Registration;
+
+    fn get(self) -> Self {
+        self
+    }
+}
+
+#[derive(Debug)]
+pub struct RegistrationOk {
+    pub size: u8,
+    pub user_name: String,
+}
+
+impl RegistrationOk {
+    pub fn new(size: u8, user_name: String) -> Self {
+        RegistrationOk { size, user_name }
+    }
+}
+
+impl FramePayload for RegistrationOk {
+    type Payload = RegistrationOk;
+
     fn get(self) -> Self {
         self
     }
