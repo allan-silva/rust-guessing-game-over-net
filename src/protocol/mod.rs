@@ -9,8 +9,6 @@ use std::convert::{From, TryFrom};
 
 use serde::{Deserialize, Serialize};
 
-use byteorder::{NetworkEndian, WriteBytesExt};
-
 const FRAME_END: u8 = 0x4;
 
 #[derive(Debug, PartialEq)]

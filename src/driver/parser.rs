@@ -4,11 +4,9 @@ use crate::protocol::{
     Class, ConnectionConstraints, FrameHeader, Method, Registration, RegistrationOk,
 };
 
-use byteorder::{ByteOrder, NetworkEndian, ReadBytesExt};
+use byteorder::{ByteOrder, NetworkEndian};
 
 use serde_json;
-
-use std::io::Read;
 
 use nom::bytes::complete::take;
 use nom::IResult;

@@ -1,5 +1,7 @@
-use crate::driver::parser::{parse_frame_header, parse_registration_method, parse_registration_ok_method};
-use crate::protocol::{Class, ConnectionConstraints, Method, Registration};
+use crate::driver::parser::{
+    parse_frame_header, parse_registration_method, parse_registration_ok_method,
+};
+use crate::protocol::{Class, ConnectionConstraints, Method};
 use byteorder::{ByteOrder, NetworkEndian};
 use serde_json;
 
@@ -31,7 +33,10 @@ fn test_parse_registration() {
     let (remain_bytes, registration) = parse_registration_method(&payload).unwrap();
     assert_eq!(0, remain_bytes.len());
     assert_eq!(constraints_bytes.len(), registration.size as usize);
-    assert_eq!(constraints.max_name_size, registration.constraints.max_name_size);
+    assert_eq!(
+        constraints.max_name_size,
+        registration.constraints.max_name_size
+    );
 }
 
 #[test]
