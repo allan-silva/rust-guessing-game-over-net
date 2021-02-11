@@ -100,6 +100,37 @@ impl FramePayload for RegistrationOk {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct User {
+    pub id: String,
+    pub name: String,
+}
+
+impl User {
+    pub fn new(id: String, name: String) -> Self {
+        User { id, name }
+    }
+}
+
+pub struct UserRegistred {
+    pub size: u32,
+    pub user: User,
+}
+
+impl UserRegistred {
+    pub fn new(size: u32, user: User) -> Self {
+        UserRegistred { size, user }
+    }
+}
+
+impl FramePayload for UserRegistred {
+    type Payload = UserRegistred;
+
+    fn get(self) -> Self {
+        self
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ProtocolHeader {
     header: String,

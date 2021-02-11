@@ -1,7 +1,7 @@
 use std::str;
 
 use crate::protocol::{
-    Class, ConnectionConstraints, FrameHeader, Method, Registration, RegistrationOk,
+    Class, ConnectionConstraints, FrameHeader, Method, Registration, RegistrationOk, User, UserRegistred
 };
 
 use byteorder::{ByteOrder, NetworkEndian};
@@ -52,7 +52,7 @@ fn parse_registration_constraints(
 
 pub fn parse_registration_method(input: &[u8]) -> Result<(&[u8], Registration), String> {
     let constraints_size_parse: IResult<&[u8], u32> =
-        take(4u8)(input).map(|(i, o)| (i, NetworkEndian::read_u32(&o)));
+        take(4u8)(input).map(|(i, o)| (i, NetworkEndian::read_u32(o)));
     let (remain_bytes, constraint_size) = constraints_size_parse.unwrap();
     let (remain_bytes, connection_constraints) =
         parse_registration_constraints(remain_bytes, constraint_size as usize).unwrap();
@@ -71,4 +71,26 @@ pub fn parse_registration_ok_method(input: &[u8]) -> Result<(&[u8], Registration
     let (remain_bytes, user_name_size) = user_name_size_parse.unwrap();
     let (remain_bytes, user_name) = parse_user_name(remain_bytes, user_name_size as usize).unwrap();
     Ok((remain_bytes, RegistrationOk::new(user_name_size, user_name)))
+}
+
+fn parse_user(input: &[u8], size: usize) -> IResult<&[u8], User> {
+    take(size)(input).map(|(i, o)| {
+        (
+            i,
+            serde_json::from_slice(o).unwrap()
+        )
+    })
+}
+
+pub fn parse_user_registred_method(input: &[u8]) -> Result<(&[u8], UserRegistred), String> {
+    let user_size_parse: IResult<&[u8], u32> = take(4u8)(input).map(|(i, o)| {
+        (
+            i,
+            NetworkEndian::read_u32(o)
+        )
+    });
+
+    let (remain_bytes, user_size) = user_size_parse.unwrap();
+    let (remain_bytes, user) = parse_user(remain_bytes, user_size as usize).unwrap();
+    Ok((remain_bytes, UserRegistred::new(user_size, user)))
 }

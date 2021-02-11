@@ -1,7 +1,8 @@
 use crate::driver::parser::{
     parse_frame_header, parse_registration_method, parse_registration_ok_method,
+    parse_user_registred_method,
 };
-use crate::protocol::{Class, ConnectionConstraints, Method};
+use crate::protocol::{Class, ConnectionConstraints, Method, User};
 use byteorder::{ByteOrder, NetworkEndian};
 use serde_json;
 
@@ -41,7 +42,7 @@ fn test_parse_registration() {
 
 #[test]
 fn test_parse_registration_ok() {
-    let user_name = String::from("Allançõí");
+    let user_name = String::from("Chiçõí");
     let user_name_bytes = user_name.as_bytes().to_owned();
     let user_name_size = user_name_bytes.len() as u8;
     let mut payload = Vec::new();
@@ -52,4 +53,23 @@ fn test_parse_registration_ok() {
     assert_eq!(0, remain_bytes.len());
     assert_eq!(user_name_bytes.len(), registration_ok.size as usize);
     assert_eq!(user_name, registration_ok.user_name);
+}
+
+#[test]
+fn test_parse_user_registred_method() {
+    let user = User::new(String::from("my-id"), String::from("Paloma"));
+    let user_bytes = serde_json::to_string(&user).unwrap().as_bytes().to_owned();
+
+    let mut user_size_bytes: [u8; 4] = [0; 4];
+    NetworkEndian::write_u32(&mut user_size_bytes, user_bytes.len() as u32);
+
+    let mut payload: Vec<u8> = Vec::new();
+    payload.extend(&user_size_bytes);
+    payload.extend(&user_bytes);
+
+    let (remain_bytes, user_registred) = parse_user_registred_method(&payload).unwrap();
+    assert_eq!(0, remain_bytes.len());
+    assert_eq!(user_bytes.len(), user_registred.size as usize);
+    assert_eq!(user.id, user_registred.user.id);
+    assert_eq!(user.name, user_registred.user.name);
 }

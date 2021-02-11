@@ -37,7 +37,7 @@ S - send to client
 |--|--|--|--|--|
 | 1 | 1 | S | Registration |Signals the client that it can start the user registration|
 |1|2|C|Registration.Ok|Send user data registration|
-|1|3|S|User|New user data|
+|1|3|S|UserRegistred|New user data|
 
 ### Registration method payload
 |size| constraints |
@@ -51,7 +51,7 @@ S - send to client
 |u8|String|
 | user name size | User name |
 
-### User method payload
+### UserRegistred method payload
 |size| user |
 |--|--|
 |u32|String|
